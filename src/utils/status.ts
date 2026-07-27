@@ -1,9 +1,16 @@
-import type { Paiement, PaymentStatus, Prestation, PrestationStatus } from "@/types"
+import type { ExpenseRecurrence, Paiement, PaymentStatus, Prestation, PrestationStatus } from "@/types"
 
 export const PRESTATION_STATUS_LABELS: Record<PrestationStatus, string> = {
   todo: "À faire",
   in_progress: "En cours",
   done: "Terminé",
+}
+
+export const EXPENSE_RECURRENCE_LABELS: Record<ExpenseRecurrence, string> = {
+  none: "Aucune",
+  daily: "Quotidienne",
+  weekly: "Hebdomadaire",
+  monthly: "Mensuelle",
 }
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {

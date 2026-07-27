@@ -29,6 +29,7 @@ import {
   buildSeedPaiements,
   buildSeedPrestations,
 } from "@/data/seed"
+import { generateMissingRecurringExpenses } from "@/utils/recurringExpenses"
 
 interface AppDataValue {
   isLoading: boolean
@@ -53,6 +54,7 @@ interface AppDataValue {
   removePaiement: (id: string) => Promise<void>
 
   addExpense: (input: ExpenseInput) => Promise<Expense>
+  updateExpense: (id: string, patch: Partial<ExpenseInput>) => Promise<void>
   removeExpense: (id: string) => Promise<void>
 
   updateSettings: (patch: Partial<BusinessSettings>) => Promise<void>
@@ -100,6 +102,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [settings, setSettings] = useState<BusinessSettings>(DEFAULT_SETTINGS)
 
+  const syncRecurringExpenses = useCallback(async (currentExpenses: Expense[]) => {
+    const missing = generateMissingRecurringExpenses(currentExpenses)
+    if (missing.length === 0) return currentExpenses
+    const created = await Promise.all(missing.map((m) => expensesRepository.create(m)))
+    return [...currentExpenses, ...created]
+  }, [])
+
   const loadAll = useCallback(async () => {
     const [c, p, pay, exp, s] = await Promise.all([
       clientsRepository.list(),
@@ -111,10 +120,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setClients(c)
     setPrestations(p)
     setPaiements(pay)
-    setExpenses(exp)
+    setExpenses(await syncRecurringExpenses(exp))
     setSettings(s)
     setIsLoading(false)
-  }, [])
+  }, [syncRecurringExpenses])
 
   useEffect(() => {
     seedIfEmpty()
@@ -177,11 +186,30 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setPaiements((prev) => prev.filter((p) => p.id !== id))
   }, [])
 
-  const addExpense = useCallback(async (input: ExpenseInput) => {
-    const created = await expensesRepository.create(input)
-    setExpenses((prev) => [...prev, created])
-    return created
-  }, [])
+  const addExpense = useCallback(
+    async (input: ExpenseInput) => {
+      const created = await expensesRepository.create(input)
+      setExpenses((prev) => [...prev, created])
+      if (created.recurrence && created.recurrence !== "none") {
+        const all = await expensesRepository.list()
+        setExpenses(await syncRecurringExpenses(all))
+      }
+      return created
+    },
+    [syncRecurringExpenses]
+  )
+
+  const updateExpense = useCallback(
+    async (id: string, patch: Partial<ExpenseInput>) => {
+      const updated = await expensesRepository.update(id, patch)
+      setExpenses((prev) => prev.map((e) => (e.id === id ? updated : e)))
+      if (updated.recurrence && updated.recurrence !== "none") {
+        const all = await expensesRepository.list()
+        setExpenses(await syncRecurringExpenses(all))
+      }
+    },
+    [syncRecurringExpenses]
+  )
 
   const removeExpense = useCallback(async (id: string) => {
     await expensesRepository.remove(id)
@@ -210,6 +238,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       addPaiement,
       removePaiement,
       addExpense,
+      updateExpense,
       removeExpense,
       updateSettings,
       reloadAll: () => {
@@ -232,6 +261,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       addPaiement,
       removePaiement,
       addExpense,
+      updateExpense,
       removeExpense,
       updateSettings,
       loadAll,

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Euro, TrendingUp, TrendingDown, Wallet, Plus, Trash2 } from "lucide-react"
+import { Euro, TrendingUp, TrendingDown, Wallet, Plus, Trash2, Pencil, Repeat } from "lucide-react"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { KpiCard } from "@/components/shared/KpiCard"
 import { EmptyState } from "@/components/shared/EmptyState"
@@ -20,13 +20,25 @@ import {
 import { useAppData } from "@/hooks/useAppData"
 import { useFinanceStats } from "@/hooks/useFinanceStats"
 import { formatCurrency, formatDate } from "@/utils/format"
+import { EXPENSE_RECURRENCE_LABELS } from "@/utils/status"
 import type { Expense } from "@/types"
 
 export function FinancesPage() {
   const { settings, expenses, removeExpense } = useAppData()
   const stats = useFinanceStats()
   const [expenseFormOpen, setExpenseFormOpen] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<Expense | undefined>()
   const [deletingExpense, setDeletingExpense] = useState<Expense | undefined>()
+
+  const openCreate = () => {
+    setEditingExpense(undefined)
+    setExpenseFormOpen(true)
+  }
+
+  const openEdit = (expense: Expense) => {
+    setEditingExpense(expense)
+    setExpenseFormOpen(true)
+  }
 
   return (
     <div>
@@ -108,7 +120,7 @@ export function FinancesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-semibold">Dépenses</CardTitle>
-            <Button size="sm" variant="outline" onClick={() => setExpenseFormOpen(true)}>
+            <Button size="sm" variant="outline" onClick={openCreate}>
               <Plus /> Ajouter
             </Button>
           </CardHeader>
@@ -124,14 +136,33 @@ export function FinancesPage() {
                       key={expense.id}
                       className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 -mx-2 hover:bg-muted/60 group"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-foreground">{expense.label}</p>
+                      <button
+                        onClick={() => openEdit(expense)}
+                        className="min-w-0 text-left"
+                      >
+                        <p className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground hover:underline">
+                          {expense.label}
+                          {expense.recurrence && expense.recurrence !== "none" && (
+                            <Repeat
+                              className="size-3 shrink-0 text-muted-foreground"
+                              aria-label={EXPENSE_RECURRENCE_LABELS[expense.recurrence]}
+                            />
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground">{formatDate(expense.date)}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
                         <span className="text-sm font-medium tabular-nums text-foreground">
                           -{formatCurrency(expense.amount, settings.currency)}
                         </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 opacity-0 group-hover:opacity-100 text-muted-foreground"
+                          onClick={() => openEdit(expense)}
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -149,7 +180,14 @@ export function FinancesPage() {
         </Card>
       </div>
 
-      <ExpenseFormDialog open={expenseFormOpen} onOpenChange={setExpenseFormOpen} />
+      <ExpenseFormDialog
+        open={expenseFormOpen}
+        onOpenChange={(open) => {
+          setExpenseFormOpen(open)
+          if (!open) setEditingExpense(undefined)
+        }}
+        expense={editingExpense}
+      />
 
       <ConfirmDialog
         open={Boolean(deletingExpense)}

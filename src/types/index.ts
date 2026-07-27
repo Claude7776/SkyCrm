@@ -47,12 +47,16 @@ export interface Paiement {
 
 export type PaiementInput = Omit<Paiement, "id" | "createdAt">
 
+export type ExpenseRecurrence = "none" | "daily" | "weekly" | "monthly"
+
 export interface Expense {
   id: ID
   label: string
   amount: number
   date: string
   category?: string
+  recurrence?: ExpenseRecurrence
+  recurringSourceId?: ID
   createdAt: string
 }
 

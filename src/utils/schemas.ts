@@ -40,6 +40,7 @@ export const expenseSchema = z.object({
   amount: z.coerce.number().positive("Le montant doit être positif"),
   date: z.string().min(1, "La date est requise"),
   category: z.string().optional(),
+  recurrence: z.enum(["none", "daily", "weekly", "monthly"]).default("none"),
 })
 
 export type ExpenseFormValues = z.input<typeof expenseSchema>

@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import {
@@ -12,40 +12,79 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { useAppData } from "@/hooks/useAppData"
 import { expenseSchema, type ExpenseFormValues, type ExpenseFormOutput } from "@/utils/schemas"
+import { EXPENSE_RECURRENCE_LABELS } from "@/utils/status"
+import type { Expense } from "@/types"
 
 interface ExpenseFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  expense?: Expense
 }
 
 function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
-export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps) {
-  const { addExpense } = useAppData()
+const EMPTY_VALUES: ExpenseFormValues = {
+  label: "",
+  amount: 0,
+  date: today(),
+  category: "",
+  recurrence: "none",
+}
+
+export function ExpenseFormDialog({ open, onOpenChange, expense }: ExpenseFormDialogProps) {
+  const { addExpense, updateExpense } = useAppData()
+  const isEditing = Boolean(expense)
+  const isGeneratedInstance = Boolean(expense?.recurringSourceId)
 
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ExpenseFormValues, unknown, ExpenseFormOutput>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: { label: "", amount: 0, date: today(), category: "" },
+    defaultValues: EMPTY_VALUES,
   })
 
   useEffect(() => {
-    if (open) reset({ label: "", amount: 0, date: today(), category: "" })
-  }, [open, reset])
+    if (open) {
+      reset(
+        expense
+          ? {
+              label: expense.label,
+              amount: expense.amount,
+              date: expense.date.slice(0, 10),
+              category: expense.category ?? "",
+              recurrence: expense.recurrence ?? "none",
+            }
+          : EMPTY_VALUES
+      )
+    }
+  }, [open, expense, reset])
 
   const onSubmit = async (values: ExpenseFormOutput) => {
     try {
-      await addExpense({ ...values, date: new Date(values.date).toISOString() })
-      toast.success("Dépense ajoutée")
+      const payload = { ...values, date: new Date(values.date).toISOString() }
+      if (isEditing && expense) {
+        await updateExpense(expense.id, payload)
+        toast.success("Dépense mise à jour")
+      } else {
+        await addExpense(payload)
+        toast.success("Dépense ajoutée")
+      }
       onOpenChange(false)
     } catch {
       toast.error("Une erreur est survenue")
@@ -56,8 +95,12 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Nouvelle dépense</DialogTitle>
-          <DialogDescription>Ajoutez une dépense professionnelle.</DialogDescription>
+          <DialogTitle>{isEditing ? "Modifier la dépense" : "Nouvelle dépense"}</DialogTitle>
+          <DialogDescription>
+            {isGeneratedInstance
+              ? "Cette occurrence a été générée automatiquement par une dépense récurrente."
+              : "Ajoutez une dépense professionnelle, ponctuelle ou récurrente."}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} id="expense-form">
@@ -83,6 +126,36 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
               <FieldLabel htmlFor="expense-category">Catégorie</FieldLabel>
               <Input id="expense-category" placeholder="Outils, formation…" {...register("category")} />
             </Field>
+            <Field>
+              <FieldLabel htmlFor="expense-recurrence">Répétition</FieldLabel>
+              <Controller
+                control={control}
+                name="recurrence"
+                render={({ field }) => (
+                  <Select
+                    value={field.value ?? "none"}
+                    onValueChange={field.onChange}
+                    disabled={isGeneratedInstance}
+                  >
+                    <SelectTrigger id="expense-recurrence" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(EXPENSE_RECURRENCE_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {!isGeneratedInstance && (
+                <p className="text-xs text-muted-foreground">
+                  Une dépense récurrente se recrée automatiquement à chaque échéance.
+                </p>
+              )}
+            </Field>
           </FieldGroup>
         </form>
 
@@ -91,7 +164,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
             Annuler
           </Button>
           <Button type="submit" form="expense-form" disabled={isSubmitting}>
-            Ajouter
+            {isEditing ? "Enregistrer" : "Ajouter"}
           </Button>
         </DialogFooter>
       </DialogContent>

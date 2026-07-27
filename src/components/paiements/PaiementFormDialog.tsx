@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { useAppData } from "@/hooks/useAppData"
-import { paiementSchema, type PaiementFormValues } from "@/utils/schemas"
+import { paiementSchema, type PaiementFormValues, type PaiementFormOutput } from "@/utils/schemas"
 import { remainingAmount } from "@/utils/status"
 import { formatCurrency } from "@/utils/format"
 
@@ -60,7 +60,7 @@ export function PaiementFormDialog({
     watch,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<PaiementFormValues>({
+  } = useForm<PaiementFormValues, unknown, PaiementFormOutput>({
     resolver: zodResolver(paiementSchema),
     defaultValues: {
       prestationId: defaultPrestationId ?? "",
@@ -92,7 +92,7 @@ export function PaiementFormDialog({
     }
   }, [selectedPrestationId, prestations, paiements, setValue])
 
-  const onSubmit = async (values: PaiementFormValues) => {
+  const onSubmit = async (values: PaiementFormOutput) => {
     try {
       await addPaiement({ ...values, date: new Date(values.date).toISOString() })
       toast.success("Paiement enregistré")

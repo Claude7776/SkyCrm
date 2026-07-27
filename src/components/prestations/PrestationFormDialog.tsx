@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { useAppData } from "@/hooks/useAppData"
-import { prestationSchema, type PrestationFormValues } from "@/utils/schemas"
+import { prestationSchema, type PrestationFormValues, type PrestationFormOutput } from "@/utils/schemas"
 import { PRESTATION_STATUS_LABELS } from "@/utils/status"
 import type { Prestation } from "@/types"
 
@@ -62,7 +62,7 @@ export function PrestationFormDialog({
     reset,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<PrestationFormValues>({
+  } = useForm<PrestationFormValues, unknown, PrestationFormOutput>({
     resolver: zodResolver(prestationSchema),
     defaultValues: EMPTY_VALUES,
   })
@@ -85,7 +85,7 @@ export function PrestationFormDialog({
     }
   }, [open, prestation, defaultClientId, reset])
 
-  const onSubmit = async (values: PrestationFormValues) => {
+  const onSubmit = async (values: PrestationFormOutput) => {
     try {
       const payload = {
         ...values,

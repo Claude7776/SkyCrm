@@ -21,7 +21,8 @@ export const prestationSchema = z.object({
   status: z.enum(["todo", "in_progress", "done"]),
 })
 
-export type PrestationFormValues = z.infer<typeof prestationSchema>
+export type PrestationFormValues = z.input<typeof prestationSchema>
+export type PrestationFormOutput = z.output<typeof prestationSchema>
 
 export const paiementSchema = z.object({
   prestationId: z.string().min(1, "Sélectionnez une prestation"),
@@ -31,7 +32,8 @@ export const paiementSchema = z.object({
   note: z.string().optional(),
 })
 
-export type PaiementFormValues = z.infer<typeof paiementSchema>
+export type PaiementFormValues = z.input<typeof paiementSchema>
+export type PaiementFormOutput = z.output<typeof paiementSchema>
 
 export const expenseSchema = z.object({
   label: z.string().min(2, "Le libellé est requis"),
@@ -40,7 +42,8 @@ export const expenseSchema = z.object({
   category: z.string().optional(),
 })
 
-export type ExpenseFormValues = z.infer<typeof expenseSchema>
+export type ExpenseFormValues = z.input<typeof expenseSchema>
+export type ExpenseFormOutput = z.output<typeof expenseSchema>
 
 export const settingsSchema = z.object({
   businessName: z.string().min(1, "Le nom de l'activité est requis"),

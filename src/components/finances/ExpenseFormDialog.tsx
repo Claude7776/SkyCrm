@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { useAppData } from "@/hooks/useAppData"
-import { expenseSchema, type ExpenseFormValues } from "@/utils/schemas"
+import { expenseSchema, type ExpenseFormValues, type ExpenseFormOutput } from "@/utils/schemas"
 
 interface ExpenseFormDialogProps {
   open: boolean
@@ -33,7 +33,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<ExpenseFormValues>({
+  } = useForm<ExpenseFormValues, unknown, ExpenseFormOutput>({
     resolver: zodResolver(expenseSchema),
     defaultValues: { label: "", amount: 0, date: today(), category: "" },
   })
@@ -42,7 +42,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
     if (open) reset({ label: "", amount: 0, date: today(), category: "" })
   }, [open, reset])
 
-  const onSubmit = async (values: ExpenseFormValues) => {
+  const onSubmit = async (values: ExpenseFormOutput) => {
     try {
       await addExpense({ ...values, date: new Date(values.date).toISOString() })
       toast.success("Dépense ajoutée")

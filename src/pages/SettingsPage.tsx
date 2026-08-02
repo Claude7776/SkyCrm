@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
-import { Download, Upload, Trash2, ImagePlus } from "lucide-react"
+import { Download, Upload, Trash2, ImagePlus, FileSpreadsheet } from "lucide-react"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ import { Switch } from "@/components/ui/switch"
 import { useAppData } from "@/hooks/useAppData"
 import { settingsSchema, type SettingsFormValues, type SettingsFormOutput } from "@/utils/schemas"
 import { exportBackupToFile, importBackupFromFile } from "@/services/backup.service"
+import { exportDataToExcel } from "@/services/excel.service"
 import { initials } from "@/utils/format"
 
 const CURRENCIES = [
@@ -41,7 +42,8 @@ const ACCENT_PRESETS = [
 ]
 
 export function SettingsPage() {
-  const { settings, updateSettings, reloadAll } = useAppData()
+  const { settings, updateSettings, reloadAll, clients, prestations, paiements, expenses } = useAppData()
+  const [isExportingExcel, setIsExportingExcel] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
   const [logoPreview, setLogoPreview] = useState<string | undefined>(settings.logo)
@@ -91,6 +93,17 @@ export function SettingsPage() {
   const removeLogo = () => {
     setLogoPreview(undefined)
     setValue("logo", undefined, { shouldDirty: true })
+  }
+
+  const handleExportExcel = async () => {
+    setIsExportingExcel(true)
+    try {
+      await exportDataToExcel({ clients, prestations, paiements, expenses })
+    } catch {
+      toast.error("Impossible de générer le fichier Excel")
+    } finally {
+      setIsExportingExcel(false)
+    }
   }
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -279,6 +292,9 @@ export function SettingsPage() {
           </Button>
           <Button type="button" variant="outline" onClick={() => importInputRef.current?.click()}>
             <Upload /> Importer un fichier JSON
+          </Button>
+          <Button type="button" variant="outline" onClick={handleExportExcel} disabled={isExportingExcel}>
+            <FileSpreadsheet /> Exporter en Excel
           </Button>
           <input
             ref={importInputRef}

@@ -24,6 +24,8 @@ import { useAppData } from "@/hooks/useAppData"
 import { paiementSchema, type PaiementFormValues, type PaiementFormOutput } from "@/utils/schemas"
 import { remainingAmount } from "@/utils/status"
 import { formatCurrency } from "@/utils/format"
+import { sendEmail } from "@/services/email.service"
+import { buildPaymentEmail } from "@/utils/emailTemplates"
 
 interface PaiementFormDialogProps {
   open: boolean
@@ -96,6 +98,23 @@ export function PaiementFormDialog({
     try {
       await addPaiement({ ...values, date: new Date(values.date).toISOString() })
       toast.success("Paiement enregistré")
+
+      const prestation = prestations.find((p) => p.id === values.prestationId)
+      const client = prestation ? clientById.get(prestation.clientId) : undefined
+      if (prestation && client?.email && settings.sendClientEmails) {
+        const { subject, html } = buildPaymentEmail(
+          client.name,
+          settings.businessName,
+          formatCurrency(values.amount, settings.currency),
+          prestation.title
+        )
+        sendEmail(client.email, subject, html).then((ok) => {
+          toast[ok ? "success" : "error"](
+            ok ? "Email de confirmation envoyé" : "Email de confirmation non envoyé"
+          )
+        })
+      }
+
       onOpenChange(false)
     } catch {
       toast.error("Une erreur est survenue")

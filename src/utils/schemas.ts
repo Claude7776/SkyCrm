@@ -54,6 +54,8 @@ export const settingsSchema = z.object({
   currency: z.string().min(1),
   accentColor: z.string().min(1),
   themeMode: z.enum(["light", "dark", "system"]),
+  sendClientEmails: z.boolean().default(true),
 })
 
-export type SettingsFormValues = z.infer<typeof settingsSchema>
+export type SettingsFormValues = z.input<typeof settingsSchema>
+export type SettingsFormOutput = z.output<typeof settingsSchema>

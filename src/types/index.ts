@@ -72,6 +72,7 @@ export interface BusinessSettings {
   currency: string
   accentColor: string
   themeMode: ThemeMode
+  sendClientEmails: boolean
 }
 
 export interface ActivityItem {

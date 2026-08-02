@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { useAppData } from "@/hooks/useAppData"
 import { clientSchema, type ClientFormValues } from "@/utils/schemas"
+import { sendEmail } from "@/services/email.service"
+import { buildWelcomeEmail } from "@/utils/emailTemplates"
 import type { Client } from "@/types"
 
 interface ClientFormDialogProps {
@@ -34,7 +36,7 @@ const EMPTY_VALUES: ClientFormValues = {
 }
 
 export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialogProps) {
-  const { addClient, updateClient } = useAppData()
+  const { addClient, updateClient, settings } = useAppData()
   const isEditing = Boolean(client)
 
   const {
@@ -70,8 +72,16 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
         await updateClient(client.id, values)
         toast.success("Client mis à jour")
       } else {
-        await addClient(values)
+        const created = await addClient(values)
         toast.success("Client ajouté")
+        if (created.email && settings.sendClientEmails) {
+          const { subject, html } = buildWelcomeEmail(created.name, settings.businessName)
+          sendEmail(created.email, subject, html).then((ok) => {
+            toast[ok ? "success" : "error"](
+              ok ? "Email de bienvenue envoyé" : "Email de bienvenue non envoyé"
+            )
+          })
+        }
       }
       onOpenChange(false)
     } catch {

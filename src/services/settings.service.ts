@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   currency: "EUR",
   accentColor: "#6d5efc",
   themeMode: "system",
+  sendClientEmails: true,
 }
 
 export const settingsService = {

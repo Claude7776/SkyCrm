@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/select"
 import { Field, FieldError, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Switch } from "@/components/ui/switch"
 import { useAppData } from "@/hooks/useAppData"
-import { settingsSchema, type SettingsFormValues } from "@/utils/schemas"
+import { settingsSchema, type SettingsFormValues, type SettingsFormOutput } from "@/utils/schemas"
 import { exportBackupToFile, importBackupFromFile } from "@/services/backup.service"
 import { initials } from "@/utils/format"
 
@@ -53,7 +54,7 @@ export function SettingsPage() {
     watch,
     setValue,
     formState: { errors, isSubmitting, isDirty },
-  } = useForm<SettingsFormValues>({
+  } = useForm<SettingsFormValues, unknown, SettingsFormOutput>({
     resolver: zodResolver(settingsSchema),
     defaultValues: settings,
   })
@@ -66,7 +67,7 @@ export function SettingsPage() {
   const accentColor = watch("accentColor")
   const businessName = watch("businessName")
 
-  const onSubmit = async (values: SettingsFormValues) => {
+  const onSubmit = async (values: SettingsFormOutput) => {
     try {
       await updateSettings(values)
       toast.success("Paramètres enregistrés")
@@ -226,6 +227,35 @@ export function SettingsPage() {
                 <FieldDescription>Utilisée pour la barre latérale et les accents.</FieldDescription>
               </Field>
             </FieldGroup>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Emails automatiques</CardTitle>
+            <CardDescription>
+              Envoie un email de bienvenue à l'inscription d'un client, et un email de
+              confirmation à chaque paiement reçu. Nécessite une clé Resend configurée côté
+              serveur (variable d'environnement RESEND_API_KEY).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Field orientation="horizontal">
+              <FieldLabel htmlFor="send-client-emails">
+                Envoyer les emails de bienvenue et de paiement
+              </FieldLabel>
+              <Controller
+                control={control}
+                name="sendClientEmails"
+                render={({ field }) => (
+                  <Switch
+                    id="send-client-emails"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </Field>
           </CardContent>
         </Card>
 

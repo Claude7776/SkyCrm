@@ -21,6 +21,7 @@ import { useAppData } from "@/hooks/useAppData"
 import { settingsSchema, type SettingsFormValues, type SettingsFormOutput } from "@/utils/schemas"
 import { exportBackupToFile, importBackupFromFile } from "@/services/backup.service"
 import { exportDataToExcel } from "@/services/excel.service"
+import { importExcelFile } from "@/services/excelImport.service"
 import { initials } from "@/utils/format"
 
 const CURRENCIES = [
@@ -42,10 +43,25 @@ const ACCENT_PRESETS = [
 ]
 
 export function SettingsPage() {
-  const { settings, updateSettings, reloadAll, clients, prestations, paiements, expenses } = useAppData()
+  const {
+    settings,
+    updateSettings,
+    reloadAll,
+    clients,
+    prestations,
+    paiements,
+    expenses,
+    addClient,
+    updateClient,
+    addPrestation,
+    addPaiement,
+    addExpense,
+  } = useAppData()
   const [isExportingExcel, setIsExportingExcel] = useState(false)
+  const [isImportingExcel, setIsImportingExcel] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
+  const importExcelInputRef = useRef<HTMLInputElement>(null)
   const [logoPreview, setLogoPreview] = useState<string | undefined>(settings.logo)
 
   const {
@@ -103,6 +119,43 @@ export function SettingsPage() {
       toast.error("Impossible de générer le fichier Excel")
     } finally {
       setIsExportingExcel(false)
+    }
+  }
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsImportingExcel(true)
+    try {
+      const summary = await importExcelFile(
+        file,
+        { clients, prestations },
+        { addClient, updateClient, addPrestation, addPaiement, addExpense }
+      )
+      const parts = [
+        summary.clientsCreated && `${summary.clientsCreated} client(s) ajouté(s)`,
+        summary.clientsUpdated && `${summary.clientsUpdated} client(s) mis à jour`,
+        summary.prestationsCreated && `${summary.prestationsCreated} prestation(s) ajoutée(s)`,
+        summary.paiementsCreated && `${summary.paiementsCreated} paiement(s) ajouté(s)`,
+        summary.expensesCreated && `${summary.expensesCreated} dépense(s) ajoutée(s)`,
+      ].filter(Boolean)
+      const skipped = summary.prestationsSkipped + summary.paiementsSkipped
+      if (parts.length === 0) {
+        toast.error("Aucune ligne reconnue dans ce fichier")
+      } else {
+        toast.success(parts.join(", "))
+        if (skipped > 0) {
+          toast.warning(`${skipped} ligne(s) ignorée(s) (client ou prestation introuvable)`)
+        }
+        if (summary.sheetsIgnored.length > 0) {
+          toast.warning(`Feuille(s) non reconnue(s) : ${summary.sheetsIgnored.join(", ")}`)
+        }
+      }
+    } catch {
+      toast.error("Fichier Excel invalide")
+    } finally {
+      setIsImportingExcel(false)
+      e.target.value = ""
     }
   }
 
@@ -284,6 +337,8 @@ export function SettingsPage() {
           <CardTitle className="text-sm font-semibold">Sauvegarde des données</CardTitle>
           <CardDescription>
             Vos données sont stockées localement dans ce navigateur. Exportez-les régulièrement.
+            L'import Excel reconnaît les colonnes par leur en-tête (Nom, Email, Titre, Montant…) —
+            les colonnes non reconnues sont ignorées.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -296,6 +351,21 @@ export function SettingsPage() {
           <Button type="button" variant="outline" onClick={handleExportExcel} disabled={isExportingExcel}>
             <FileSpreadsheet /> Exporter en Excel
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => importExcelInputRef.current?.click()}
+            disabled={isImportingExcel}
+          >
+            <Upload /> Importer un fichier Excel
+          </Button>
+          <input
+            ref={importExcelInputRef}
+            type="file"
+            accept=".xlsx"
+            className="hidden"
+            onChange={handleImportExcel}
+          />
           <input
             ref={importInputRef}
             type="file"

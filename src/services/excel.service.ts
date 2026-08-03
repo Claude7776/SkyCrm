@@ -1,6 +1,5 @@
 import writeExcelFile from "write-excel-file/browser"
 import type { Client, Expense, Paiement, Prestation } from "@/types"
-import { formatDate } from "@/utils/format"
 import {
   EXPENSE_RECURRENCE_LABELS,
   PAYMENT_STATUS_LABELS,
@@ -17,6 +16,15 @@ interface ExcelExportData {
 
 function header(text: string) {
   return { value: text, fontWeight: "bold" as const }
+}
+
+/**
+ * Real Date cells (not pre-formatted text) so the export stays sortable
+ * in Excel and round-trips cleanly through the Excel import.
+ */
+function dateCell(iso: string | undefined) {
+  if (!iso) return ""
+  return { value: new Date(iso), type: Date, format: "dd/mm/yyyy" }
 }
 
 export async function exportDataToExcel(data: ExcelExportData): Promise<void> {
@@ -40,7 +48,7 @@ export async function exportDataToExcel(data: ExcelExportData): Promise<void> {
       c.company || "",
       c.address || "",
       c.notes || "",
-      formatDate(c.createdAt),
+      dateCell(c.createdAt),
     ]),
   ]
 
@@ -58,8 +66,8 @@ export async function exportDataToExcel(data: ExcelExportData): Promise<void> {
       p.title,
       clientById.get(p.clientId)?.name || "",
       p.price,
-      formatDate(p.date),
-      p.dueDate ? formatDate(p.dueDate) : "",
+      dateCell(p.date),
+      dateCell(p.dueDate),
       PRESTATION_STATUS_LABELS[p.status],
       PAYMENT_STATUS_LABELS[computePaymentStatus(p, data.paiements)],
     ]),
@@ -73,9 +81,9 @@ export async function exportDataToExcel(data: ExcelExportData): Promise<void> {
       return [
         prestation?.title || "",
         client?.name || "",
-        pay.amount, 
+        pay.amount,
         pay.method || "",
-        formatDate(pay.date),
+        dateCell(pay.date),
         pay.note || "",
       ]
     }),
@@ -86,7 +94,7 @@ export async function exportDataToExcel(data: ExcelExportData): Promise<void> {
     ...data.expenses.map((e) => [
       e.label,
       e.amount,
-      formatDate(e.date),
+      dateCell(e.date),
       e.category || "",
       EXPENSE_RECURRENCE_LABELS[e.recurrence ?? "none"],
     ]),

@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react"
@@ -22,7 +23,10 @@ import { prestationsRepository } from "@/services/prestations.service"
 import { paiementsRepository } from "@/services/paiements.service"
 import { expensesRepository } from "@/services/expenses.service"
 import { settingsService, DEFAULT_SETTINGS } from "@/services/settings.service"
-import { readCollection } from "@/services/storage"
+import { hasAnyData, readBrowserSnapshot, writeSnapshot } from "@/services/dataStore"
+import { isRemoteStorage } from "@/lib/supabase"
+import { useAuth } from "@/hooks/useAuth"
+import { toast } from "sonner"
 import {
   buildSeedClients,
   buildSeedExpenses,
@@ -64,34 +68,50 @@ interface AppDataValue {
 
 export const AppDataContext = createContext<AppDataValue | null>(null)
 
-function hasAnyExistingData(): boolean {
-  const clients = readCollection<Client[]>("clients", [])
-  const prestations = readCollection<Prestation[]>("prestations", [])
-  const settings = readCollection<BusinessSettings | null>("settings", null)
-  return clients.length > 0 || prestations.length > 0 || settings !== null
+const MIGRATION_FLAG_PREFIX = "skycrm:migrated:"
+
+/**
+ * First run: locally we seed demo data; with Supabase we instead upload what
+ * this browser already holds, once per user, so existing data isn't lost.
+ */
+const initializations = new Map<string, Promise<number>>()
+
+function initializeData(userId: string | undefined): Promise<number> {
+  const key = userId ?? "local"
+  let pending = initializations.get(key)
+  if (!pending) {
+    pending = runInitialization(userId)
+    initializations.set(key, pending)
+    pending.catch(() => initializations.delete(key))
+  }
+  return pending
 }
 
-function seedIfEmpty(): void {
-  if (hasAnyExistingData()) return
-  const clients = buildSeedClients()
-  const prestations = buildSeedPrestations(clients)
-  const paiements = buildSeedPaiements(prestations)
-  const expenses = buildSeedExpenses()
+async function runInitialization(userId: string | undefined): Promise<number> {
+  if (!isRemoteStorage) {
+    if (await hasAnyData()) return 0
+    const clients = buildSeedClients()
+    const prestations = buildSeedPrestations(clients)
+    await writeSnapshot({
+      clients,
+      prestations,
+      paiements: buildSeedPaiements(prestations),
+      expenses: buildSeedExpenses(),
+      settings: DEFAULT_SETTINGS,
+    })
+    return 0
+  }
 
-  window.localStorage.setItem("skycrm:v1:clients", JSON.stringify(clients))
-  window.localStorage.setItem(
-    "skycrm:v1:prestations",
-    JSON.stringify(prestations)
-  )
-  window.localStorage.setItem(
-    "skycrm:v1:paiements",
-    JSON.stringify(paiements)
-  )
-  window.localStorage.setItem("skycrm:v1:expenses", JSON.stringify(expenses))
-  window.localStorage.setItem(
-    "skycrm:v1:settings",
-    JSON.stringify(DEFAULT_SETTINGS)
-  )
+  const flag = MIGRATION_FLAG_PREFIX + userId
+  if (window.localStorage.getItem(flag)) return 0
+  const local = readBrowserSnapshot()
+  let migrated = 0
+  if (local && !(await hasAnyData())) {
+    await writeSnapshot(local)
+    migrated = (local.clients?.length ?? 0) + (local.prestations?.length ?? 0)
+  }
+  window.localStorage.setItem(flag, new Date().toISOString())
+  return migrated
 }
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
@@ -101,6 +121,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [paiements, setPaiements] = useState<Paiement[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [settings, setSettings] = useState<BusinessSettings>(DEFAULT_SETTINGS)
+  const { user } = useAuth()
+  const userId = user?.id
 
   const syncRecurringExpenses = useCallback(async (currentExpenses: Expense[]) => {
     const missing = generateMissingRecurringExpenses(currentExpenses)
@@ -109,7 +131,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return [...currentExpenses, ...created]
   }, [])
 
-  const loadAll = useCallback(async () => {
+  const inFlightLoad = useRef<Promise<void> | null>(null)
+
+  const fetchAll = useCallback(async () => {
     const [c, p, pay, exp, s] = await Promise.all([
       clientsRepository.list(),
       prestationsRepository.list(),
@@ -125,9 +149,44 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setIsLoading(false)
   }, [syncRecurringExpenses])
 
+  // Overlapping loads would each create the same missing recurring expenses.
+  const loadAll = useCallback(() => {
+    inFlightLoad.current ??= fetchAll().finally(() => {
+      inFlightLoad.current = null
+    })
+    return inFlightLoad.current
+  }, [fetchAll])
+
   useEffect(() => {
-    seedIfEmpty()
-    loadAll()
+    let cancelled = false
+    const init = async () => {
+      try {
+        const migrated = await initializeData(userId)
+        if (cancelled) return
+        if (migrated > 0) {
+          toast.success("Vos données de ce navigateur ont été transférées dans la base")
+        }
+        await loadAll()
+      } catch (error) {
+        console.error(error)
+        toast.error("Impossible de charger les données. Vérifiez votre connexion.")
+        setIsLoading(false)
+      }
+    }
+    void init()
+    return () => {
+      cancelled = true
+    }
+  }, [loadAll, userId])
+
+  // Pick up changes made from another device when coming back to the app.
+  useEffect(() => {
+    if (!isRemoteStorage) return
+    const handler = () => {
+      if (document.visibilityState === "visible") loadAll().catch(console.error)
+    }
+    document.addEventListener("visibilitychange", handler)
+    return () => document.removeEventListener("visibilitychange", handler)
   }, [loadAll])
 
   const addClient = useCallback(async (input: ClientInput) => {

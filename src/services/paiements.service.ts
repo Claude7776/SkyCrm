@@ -1,7 +1,7 @@
 import type { Paiement, PaiementInput } from "@/types"
-import { createSimpleLocalRepository } from "./repository"
+import { createRepository } from "./repository"
 
-export const paiementsRepository = createSimpleLocalRepository<
+export const paiementsRepository = createRepository<
   Paiement,
   PaiementInput
->("paiements")
+>("paiements", { trackUpdatedAt: false })

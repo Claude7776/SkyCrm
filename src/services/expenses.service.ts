@@ -1,7 +1,7 @@
 import type { Expense, ExpenseInput } from "@/types"
-import { createSimpleLocalRepository } from "./repository"
+import { createRepository } from "./repository"
 
-export const expensesRepository = createSimpleLocalRepository<
+export const expensesRepository = createRepository<
   Expense,
   ExpenseInput
->("expenses")
+>("expenses", { trackUpdatedAt: false })

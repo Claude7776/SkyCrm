@@ -24,7 +24,7 @@ import { paiementsRepository } from "@/services/paiements.service"
 import { expensesRepository } from "@/services/expenses.service"
 import { settingsService, DEFAULT_SETTINGS } from "@/services/settings.service"
 import { hasAnyData, readBrowserSnapshot, writeSnapshot } from "@/services/dataStore"
-import { isRemoteStorage } from "@/lib/supabase"
+import { describeDatabaseError, isRemoteStorage } from "@/lib/supabase"
 import { useAuth } from "@/hooks/useAuth"
 import { toast } from "sonner"
 import {
@@ -169,7 +169,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         await loadAll()
       } catch (error) {
         console.error(error)
-        toast.error("Impossible de charger les données. Vérifiez votre connexion.")
+        toast.error(`Impossible de charger les données : ${describeDatabaseError(error)}`)
         setIsLoading(false)
       }
     }

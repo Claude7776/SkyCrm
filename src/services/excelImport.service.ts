@@ -30,6 +30,12 @@ export interface ExcelImportActions {
   addExpense: (input: ExpenseInput) => Promise<unknown>
 }
 
+export class InvalidExcelFileError extends Error {
+  constructor() {
+    super("Fichier Excel invalide")
+  }
+}
+
 export interface ExcelImportSummary {
   clientsCreated: number
   clientsUpdated: number
@@ -58,7 +64,12 @@ export async function importExcelFile(
   initial: { clients: Client[]; prestations: Prestation[] },
   actions: ExcelImportActions
 ): Promise<ExcelImportSummary> {
-  const sheets = await readExcelFile(file)
+  let sheets: Awaited<ReturnType<typeof readExcelFile>>
+  try {
+    sheets = await readExcelFile(file)
+  } catch {
+    throw new InvalidExcelFileError()
+  }
 
   const summary: ExcelImportSummary = {
     clientsCreated: 0,

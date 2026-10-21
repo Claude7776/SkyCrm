@@ -21,10 +21,10 @@ import { useAppData } from "@/hooks/useAppData"
 import { settingsSchema, type SettingsFormValues, type SettingsFormOutput } from "@/utils/schemas"
 import { exportBackupToFile, importBackupFromFile } from "@/services/backup.service"
 import { exportDataToExcel } from "@/services/excel.service"
-import { importExcelFile } from "@/services/excelImport.service"
+import { importExcelFile, InvalidExcelFileError } from "@/services/excelImport.service"
 import { initials } from "@/utils/format"
 import { useAuth } from "@/hooks/useAuth"
-import { isRemoteStorage } from "@/lib/supabase"
+import { describeDatabaseError, isRemoteStorage } from "@/lib/supabase"
 import { clearAll } from "@/services/dataStore"
 
 const CURRENCIES = [
@@ -154,8 +154,13 @@ export function SettingsPage() {
           toast.warning(`Feuille(s) non reconnue(s) : ${summary.sheetsIgnored.join(", ")}`)
         }
       }
-    } catch {
-      toast.error("Fichier Excel invalide")
+    } catch (error) {
+      console.error(error)
+      toast.error(
+        error instanceof InvalidExcelFileError
+          ? "Fichier Excel invalide"
+          : `Import interrompu : ${describeDatabaseError(error)}`
+      )
     } finally {
       setIsImportingExcel(false)
       e.target.value = ""

@@ -1,12 +1,12 @@
-import { exportAllRaw, importAllRaw } from "./storage"
+import { readSnapshot, writeSnapshot, type DataSnapshot } from "./dataStore"
 
 const FILE_VERSION = 1
 
-export function exportBackupToFile(): void {
+export async function exportBackupToFile(): Promise<void> {
   const payload = {
     version: FILE_VERSION,
     exportedAt: new Date().toISOString(),
-    data: exportAllRaw(),
+    data: await readSnapshot(),
   }
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: "application/json",
@@ -27,5 +27,5 @@ export async function importBackupFromFile(file: File): Promise<void> {
   if (!data || typeof data !== "object") {
     throw new Error("Fichier de sauvegarde invalide")
   }
-  importAllRaw(data as Record<string, unknown>)
+  await writeSnapshot(data as DataSnapshot)
 }

@@ -1,6 +1,7 @@
 import type { Client, ClientInput } from "@/types"
-import { createLocalRepository } from "./repository"
+import { createRepository } from "./repository"
 
-export const clientsRepository = createLocalRepository<Client, ClientInput>(
-  "clients"
+export const clientsRepository = createRepository<Client, ClientInput>(
+  "clients",
+  { trackUpdatedAt: true }
 )

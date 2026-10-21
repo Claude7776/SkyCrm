@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
-import { Download, Upload, Trash2, ImagePlus, FileSpreadsheet } from "lucide-react"
+import { Download, Upload, Trash2, ImagePlus, FileSpreadsheet, LogOut } from "lucide-react"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,9 @@ import { exportBackupToFile, importBackupFromFile } from "@/services/backup.serv
 import { exportDataToExcel } from "@/services/excel.service"
 import { importExcelFile } from "@/services/excelImport.service"
 import { initials } from "@/utils/format"
+import { useAuth } from "@/hooks/useAuth"
+import { isRemoteStorage } from "@/lib/supabase"
+import { clearAll } from "@/services/dataStore"
 
 const CURRENCIES = [
   { value: "EUR", label: "Euro (€)" },
@@ -156,6 +159,14 @@ export function SettingsPage() {
     } finally {
       setIsImportingExcel(false)
       e.target.value = ""
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      await exportBackupToFile()
+    } catch {
+      toast.error("Impossible d'exporter les données")
     }
   }
 
@@ -332,17 +343,21 @@ export function SettingsPage() {
         </div>
       </form>
 
+      {isRemoteStorage && <AccountCard />}
+
       <Card className="mt-4">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Sauvegarde des données</CardTitle>
           <CardDescription>
-            Vos données sont stockées localement dans ce navigateur. Exportez-les régulièrement.
+            {isRemoteStorage
+              ? "Vos données sont enregistrées dans votre base en ligne et accessibles depuis tous vos appareils."
+              : "Vos données sont stockées localement dans ce navigateur. Exportez-les régulièrement."}
             L'import Excel reconnaît les colonnes par leur en-tête (Nom, Email, Titre, Montant…) —
             les colonnes non reconnues sont ignorées.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" onClick={exportBackupToFile}>
+          <Button type="button" variant="outline" onClick={handleExport}>
             <Download /> Exporter en JSON
           </Button>
           <Button type="button" variant="outline" onClick={() => importInputRef.current?.click()}>
@@ -389,14 +404,34 @@ export function SettingsPage() {
   )
 }
 
+function AccountCard() {
+  const { user, signOut } = useAuth()
+
+  return (
+    <Card className="mt-4">
+      <CardHeader>
+        <CardTitle className="text-sm font-semibold">Compte</CardTitle>
+        <CardDescription>Connecté en tant que {user?.email}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button type="button" variant="outline" size="sm" onClick={() => void signOut()}>
+          <LogOut /> Se déconnecter
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
 function ResetAllButton() {
-  const { reloadAll } = useAppData()
   const [confirming, setConfirming] = useState(false)
 
-  const handleReset = () => {
-    window.localStorage.clear()
-    reloadAll()
-    window.location.reload()
+  const handleReset = async () => {
+    try {
+      await clearAll()
+      window.location.reload()
+    } catch {
+      toast.error("La réinitialisation a échoué")
+    }
   }
 
   return confirming ? (

@@ -1,4 +1,5 @@
 import { readCollection, writeCollection } from "./storage"
+import { fromRow, isRemoteStorage, requireSupabase, selectAll, toRow } from "@/lib/supabase"
 
 export interface Repository<T extends { id: string }, TInput> {
   list(): Promise<T[]>
@@ -9,9 +10,69 @@ export interface Repository<T extends { id: string }, TInput> {
 }
 
 /**
- * Backed by localStorage today. Swapping to a remote API later only
- * requires providing a different implementation of `Repository`.
+ * Backed by Supabase when it is configured, localStorage otherwise.
+ * `trackUpdatedAt` maintains an `updatedAt` field alongside `createdAt`.
  */
+export function createRepository<
+  T extends { id: string; createdAt: string },
+  TInput extends Record<string, unknown>,
+>(collectionKey: string, { trackUpdatedAt }: { trackUpdatedAt: boolean }): Repository<T, TInput> {
+  if (isRemoteStorage) return createSupabaseRepository<T, TInput>(collectionKey, trackUpdatedAt)
+  return trackUpdatedAt
+    ? (createLocalRepository(collectionKey) as unknown as Repository<T, TInput>)
+    : createSimpleLocalRepository<T, TInput>(collectionKey)
+}
+
+/** Rows live in the table named after the collection; RLS scopes them to the user. */
+export function createSupabaseRepository<
+  T extends { id: string; createdAt: string },
+  TInput extends Record<string, unknown>,
+>(table: string, trackUpdatedAt: boolean): Repository<T, TInput> {
+  const db = () => requireSupabase().from(table)
+
+  return {
+    async list() {
+      const rows = await selectAll(table)
+      return rows.map((row) => fromRow<T>(row))
+    },
+    async get(id) {
+      const { data, error } = await db().select("*").eq("id", id).maybeSingle()
+      if (error) throw error
+      return data ? fromRow<T>(data) : undefined
+    },
+    async create(input) {
+      const now = new Date().toISOString()
+      const entity = {
+        ...input,
+        id: crypto.randomUUID(),
+        createdAt: now,
+        ...(trackUpdatedAt && { updatedAt: now }),
+      }
+      const { data, error } = await db().insert(toRow(entity)).select().single()
+      if (error) throw error
+      return fromRow<T>(data)
+    },
+    async update(id, patch) {
+      const changes = trackUpdatedAt
+        ? { ...patch, updatedAt: new Date().toISOString() }
+        : patch
+      const { data, error } = await db()
+        .update(toRow(changes))
+        .eq("id", id)
+        .select()
+        .maybeSingle()
+      if (error) throw error
+      if (!data) throw new Error(`Not found: ${id}`)
+      return fromRow<T>(data)
+    },
+    async remove(id) {
+      const { error } = await db().delete().eq("id", id)
+      if (error) throw error
+    },
+  }
+}
+
+/** localStorage implementation with createdAt/updatedAt bookkeeping. */
 export function createLocalRepository<
   T extends { id: string; createdAt: string; updatedAt: string },
   TInput extends Record<string, unknown>,

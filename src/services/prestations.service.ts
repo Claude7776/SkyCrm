@@ -1,7 +1,7 @@
 import type { Prestation, PrestationInput } from "@/types"
-import { createLocalRepository } from "./repository"
+import { createRepository } from "./repository"
 
-export const prestationsRepository = createLocalRepository<
+export const prestationsRepository = createRepository<
   Prestation,
   PrestationInput
->("prestations")
+>("prestations", { trackUpdatedAt: true })

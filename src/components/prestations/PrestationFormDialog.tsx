@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { useAppData } from "@/hooks/useAppData"
+import { currencySymbol } from "@/utils/currency"
 import { prestationSchema, type PrestationFormValues, type PrestationFormOutput } from "@/utils/schemas"
 import { PRESTATION_STATUS_LABELS } from "@/utils/status"
 import type { Prestation } from "@/types"
@@ -53,7 +54,7 @@ export function PrestationFormDialog({
   prestation,
   defaultClientId,
 }: PrestationFormDialogProps) {
-  const { clients, addPrestation, updatePrestation } = useAppData()
+  const { clients, addPrestation, updatePrestation, currency } = useAppData()
   const isEditing = Boolean(prestation)
 
   const {
@@ -153,7 +154,7 @@ export function PrestationFormDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <Field data-invalid={!!errors.price}>
-                <FieldLabel htmlFor="prestation-price">Prix *</FieldLabel>
+                <FieldLabel htmlFor="prestation-price">Prix ({currencySymbol(currency)}) *</FieldLabel>
                 <Input
                   id="prestation-price"
                   type="number"

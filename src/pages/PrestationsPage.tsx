@@ -33,7 +33,7 @@ import type { Prestation, PrestationStatus } from "@/types"
 type StatusFilter = "all" | PrestationStatus
 
 export function PrestationsPage() {
-  const { clients, prestations, paiements, settings, removePrestation } = useAppData()
+  const { clients, prestations, paiements, removePrestation, currency } = useAppData()
   const [searchParams] = useSearchParams()
   const highlightedId = searchParams.get("id")
 
@@ -176,7 +176,7 @@ export function PrestationsPage() {
                           {clientById.get(prestation.clientId)?.name ?? "—"}
                         </TableCell>
                         <TableCell className="text-right text-sm font-medium tabular-nums">
-                          {formatCurrency(prestation.price, settings.currency)}
+                          {formatCurrency(prestation.price, currency)}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {formatDate(prestation.date)}

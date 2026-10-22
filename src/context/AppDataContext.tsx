@@ -24,7 +24,7 @@ import { paiementsRepository } from "@/services/paiements.service"
 import { expensesRepository } from "@/services/expenses.service"
 import { settingsService, DEFAULT_SETTINGS } from "@/services/settings.service"
 import { hasAnyData, readBrowserSnapshot, writeSnapshot } from "@/services/dataStore"
-import { isRemoteStorage } from "@/lib/supabase"
+import { describeDatabaseError, isRemoteStorage } from "@/lib/supabase"
 import { useAuth } from "@/hooks/useAuth"
 import { toast } from "sonner"
 import {
@@ -34,6 +34,8 @@ import {
   buildSeedPrestations,
 } from "@/data/seed"
 import { generateMissingRecurringExpenses } from "@/utils/recurringExpenses"
+import { roundMoney } from "@/utils/currency"
+import { getExchangeRate, type ExchangeRate } from "@/services/exchangeRates.service"
 
 interface AppDataValue {
   isLoading: boolean
@@ -42,6 +44,14 @@ interface AppDataValue {
   paiements: Paiement[]
   expenses: Expense[]
   settings: BusinessSettings
+  /**
+   * Currency every amount above is expressed in. Usually `settings.currency`,
+   * but falls back to the stored currency while no exchange rate is known.
+   */
+  currency: string
+  /** Rate used to convert stored amounts, or null when none is needed/known. */
+  exchangeRate: ExchangeRate | null
+  exchangeRateError: boolean
 
   addClient: (input: ClientInput) => Promise<Client>
   updateClient: (id: string, patch: Partial<ClientInput>) => Promise<void>
@@ -124,6 +134,45 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const userId = user?.id
 
+  const baseCurrency = settings.baseCurrency ?? settings.currency
+  const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null)
+  const [exchangeRateError, setExchangeRateError] = useState(false)
+
+  useEffect(() => {
+    if (baseCurrency === settings.currency) {
+      setExchangeRate(null)
+      setExchangeRateError(false)
+      return
+    }
+    let cancelled = false
+    getExchangeRate(baseCurrency, settings.currency)
+      .then((rate) => {
+        if (cancelled) return
+        setExchangeRate(rate)
+        setExchangeRateError(false)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        console.error(error)
+        setExchangeRateError(true)
+        toast.error(
+          `Taux de change ${baseCurrency} → ${settings.currency} indisponible : montants affichés en ${baseCurrency}`
+        )
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [baseCurrency, settings.currency])
+
+  const activeRate =
+    exchangeRate &&
+    exchangeRate.from === baseCurrency &&
+    exchangeRate.to === settings.currency
+      ? exchangeRate
+      : null
+  const rate = activeRate?.rate ?? 1
+  const currency = activeRate ? settings.currency : baseCurrency
+
   const syncRecurringExpenses = useCallback(async (currentExpenses: Expense[]) => {
     const missing = generateMissingRecurringExpenses(currentExpenses)
     if (missing.length === 0) return currentExpenses
@@ -134,7 +183,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const inFlightLoad = useRef<Promise<void> | null>(null)
 
   const fetchAll = useCallback(async () => {
-    const [c, p, pay, exp, s] = await Promise.all([
+    const [c, p, pay, exp, loadedSettings] = await Promise.all([
       clientsRepository.list(),
       prestationsRepository.list(),
       paiementsRepository.list(),
@@ -145,6 +194,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setPrestations(p)
     setPaiements(pay)
     setExpenses(await syncRecurringExpenses(exp))
+    // Amounts were always entered in the chosen currency, so pin it as the
+    // storage currency before the user can switch the display currency.
+    const s = loadedSettings.baseCurrency
+      ? loadedSettings
+      : await settingsService.update({ baseCurrency: loadedSettings.currency })
     setSettings(s)
     setIsLoading(false)
   }, [syncRecurringExpenses])
@@ -169,7 +223,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         await loadAll()
       } catch (error) {
         console.error(error)
-        toast.error("Impossible de charger les données. Vérifiez votre connexion.")
+        toast.error(`Impossible de charger les données : ${describeDatabaseError(error)}`)
         setIsLoading(false)
       }
     }
@@ -280,52 +334,90 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setSettings(updated)
   }, [])
 
-  const value = useMemo<AppDataValue>(
-    () => ({
+  const value = useMemo<AppDataValue>(() => {
+    const toDisplay = (amount: number) => (rate === 1 ? amount : roundMoney(amount * rate))
+    const toStored = (amount: number) => (rate === 1 ? amount : roundMoney(amount / rate))
+    /**
+     * Converts an edited amount back to the stored currency. An amount left
+     * unchanged keeps its stored value, so editing other fields never drifts it.
+     */
+    const patchAmount = (edited: number | undefined, stored: number | undefined) =>
+      edited === undefined || stored === undefined
+        ? edited
+        : edited === toDisplay(stored)
+          ? stored
+          : toStored(edited)
+
+    const displayPrestation = (p: Prestation) => ({ ...p, price: toDisplay(p.price) })
+    const displayPaiement = (p: Paiement) => ({ ...p, amount: toDisplay(p.amount) })
+    const displayExpense = (e: Expense) => ({ ...e, amount: toDisplay(e.amount) })
+
+    return {
       isLoading,
       clients,
-      prestations,
-      paiements,
-      expenses,
+      prestations: rate === 1 ? prestations : prestations.map(displayPrestation),
+      paiements: rate === 1 ? paiements : paiements.map(displayPaiement),
+      expenses: rate === 1 ? expenses : expenses.map(displayExpense),
       settings,
+      currency,
+      exchangeRate: activeRate,
+      exchangeRateError,
       addClient,
       updateClient,
       removeClient,
-      addPrestation,
-      updatePrestation,
+      addPrestation: async (input) =>
+        displayPrestation(await addPrestation({ ...input, price: toStored(input.price) })),
+      updatePrestation: (id, patch) =>
+        updatePrestation(id, {
+          ...patch,
+          ...(patch.price !== undefined && {
+            price: patchAmount(patch.price, prestations.find((p) => p.id === id)?.price),
+          }),
+        }),
       removePrestation,
-      addPaiement,
+      addPaiement: async (input) =>
+        displayPaiement(await addPaiement({ ...input, amount: toStored(input.amount) })),
       removePaiement,
-      addExpense,
-      updateExpense,
+      addExpense: async (input) =>
+        displayExpense(await addExpense({ ...input, amount: toStored(input.amount) })),
+      updateExpense: (id, patch) =>
+        updateExpense(id, {
+          ...patch,
+          ...(patch.amount !== undefined && {
+            amount: patchAmount(patch.amount, expenses.find((e) => e.id === id)?.amount),
+          }),
+        }),
       removeExpense,
       updateSettings,
       reloadAll: () => {
         void loadAll()
       },
-    }),
-    [
-      isLoading,
-      clients,
-      prestations,
-      paiements,
-      expenses,
-      settings,
-      addClient,
-      updateClient,
-      removeClient,
-      addPrestation,
-      updatePrestation,
-      removePrestation,
-      addPaiement,
-      removePaiement,
-      addExpense,
-      updateExpense,
-      removeExpense,
-      updateSettings,
-      loadAll,
-    ]
-  )
+    }
+  }, [
+    isLoading,
+    clients,
+    prestations,
+    paiements,
+    expenses,
+    settings,
+    rate,
+    currency,
+    activeRate,
+    exchangeRateError,
+    addClient,
+    updateClient,
+    removeClient,
+    addPrestation,
+    updatePrestation,
+    removePrestation,
+    addPaiement,
+    removePaiement,
+    addExpense,
+    updateExpense,
+    removeExpense,
+    updateSettings,
+    loadAll,
+  ])
 
   return (
     <AppDataContext.Provider value={value}>

@@ -21,19 +21,12 @@ import { useAppData } from "@/hooks/useAppData"
 import { settingsSchema, type SettingsFormValues, type SettingsFormOutput } from "@/utils/schemas"
 import { exportBackupToFile, importBackupFromFile } from "@/services/backup.service"
 import { exportDataToExcel } from "@/services/excel.service"
-import { importExcelFile } from "@/services/excelImport.service"
-import { initials } from "@/utils/format"
+import { importExcelFile, InvalidExcelFileError } from "@/services/excelImport.service"
+import { formatCurrency, formatDate, initials } from "@/utils/format"
+import { CURRENCIES } from "@/utils/currency"
 import { useAuth } from "@/hooks/useAuth"
-import { isRemoteStorage } from "@/lib/supabase"
+import { describeDatabaseError, isRemoteStorage } from "@/lib/supabase"
 import { clearAll } from "@/services/dataStore"
-
-const CURRENCIES = [
-  { value: "EUR", label: "Euro (€)" },
-  { value: "USD", label: "Dollar US ($)" },
-  { value: "GBP", label: "Livre sterling (£)" },
-  { value: "CHF", label: "Franc suisse (CHF)" },
-  { value: "CAD", label: "Dollar canadien (CAD)" },
-]
 
 const ACCENT_PRESETS = [
   "#6d5efc",
@@ -48,6 +41,8 @@ const ACCENT_PRESETS = [
 export function SettingsPage() {
   const {
     settings,
+    exchangeRate,
+    exchangeRateError,
     updateSettings,
     reloadAll,
     clients,
@@ -154,8 +149,13 @@ export function SettingsPage() {
           toast.warning(`Feuille(s) non reconnue(s) : ${summary.sheetsIgnored.join(", ")}`)
         }
       }
-    } catch {
-      toast.error("Fichier Excel invalide")
+    } catch (error) {
+      console.error(error)
+      toast.error(
+        error instanceof InvalidExcelFileError
+          ? "Fichier Excel invalide"
+          : `Import interrompu : ${describeDatabaseError(error)}`
+      )
     } finally {
       setIsImportingExcel(false)
       e.target.value = ""
@@ -270,6 +270,13 @@ export function SettingsPage() {
                     </Select>
                   )}
                 />
+                <FieldDescription>
+                  {exchangeRate
+                    ? `Montants enregistrés en ${exchangeRate.from} et convertis automatiquement : 1 ${exchangeRate.from} = ${formatCurrency(exchangeRate.rate, exchangeRate.to)} (taux BCE du ${formatDate(exchangeRate.date)}).`
+                    : exchangeRateError
+                      ? `Taux de change indisponible : les montants restent affichés en ${settings.baseCurrency ?? settings.currency}.`
+                      : "En changeant de devise, tous les montants sont convertis automatiquement au taux du jour."}
+                </FieldDescription>
               </Field>
 
               <Field>

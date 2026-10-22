@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/chart"
 import type { MonthlyFinancePoint } from "@/hooks/useFinanceStats"
 import { useAppData } from "@/hooks/useAppData"
-import { formatCurrency } from "@/utils/format"
+import { formatCompactCurrency, formatCurrency } from "@/utils/format"
 
 const chartConfig = {
   revenue: { label: "Revenus", color: "var(--chart-1)" },
@@ -17,7 +17,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function RevenueExpenseChart({ data }: { data: MonthlyFinancePoint[] }) {
-  const { settings } = useAppData()
+  const { currency } = useAppData()
 
   return (
     <ChartContainer config={chartConfig} className="aspect-auto h-[280px] w-full">
@@ -28,18 +28,16 @@ export function RevenueExpenseChart({ data }: { data: MonthlyFinancePoint[] }) {
           tickLine={false}
           axisLine={false}
           tickMargin={8}
-          width={56}
+          width={64}
           className="text-[11px]"
-          tickFormatter={(value: number) =>
-            formatCurrency(value, settings.currency).replace(/\s?,00\s?/, "")
-          }
+          tickFormatter={(value: number) => formatCompactCurrency(value, currency)}
         />
         <ChartTooltip
           cursor={{ fill: "var(--muted)" }}
           content={
             <ChartTooltipContent
               formatter={(value, name) => [
-                formatCurrency(Number(value), settings.currency),
+                formatCurrency(Number(value), currency),
                 name === "revenue" ? " Revenus" : " Dépenses",
               ]}
             />

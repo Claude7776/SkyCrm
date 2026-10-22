@@ -4,6 +4,7 @@ import { Search } from "lucide-react"
 import { MobileSidebar } from "./MobileSidebar"
 import { CommandPalette } from "./CommandPalette"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
+import { StorageStatus } from "@/components/shared/StorageStatus"
 import { Button } from "@/components/ui/button"
 import { NAV_ITEMS } from "./nav-items"
 
@@ -34,6 +35,7 @@ export function Header() {
       </h1>
 
       <div className="ml-auto flex items-center gap-2">
+        <StorageStatus />
         <Button
           variant="outline"
           size="sm"

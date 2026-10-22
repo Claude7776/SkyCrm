@@ -23,6 +23,17 @@ export async function currentUserId(): Promise<string> {
   return id
 }
 
+/** Readable French message for an error thrown by Supabase or the network. */
+export function describeDatabaseError(error: unknown): string {
+  const { code, message } = (error ?? {}) as { code?: string; message?: string }
+  if (code === "PGRST205" || code === "42P01") {
+    return "Les tables n'existent pas dans Supabase : exécutez supabase/schema.sql dans le SQL Editor."
+  }
+  if (code === "42501") return "Accès refusé par la base : reconnectez-vous."
+  if (error instanceof TypeError) return "Impossible de joindre la base : vérifiez votre connexion."
+  return message || "Erreur inconnue"
+}
+
 const PAGE_SIZE = 1000
 
 /** Supabase caps a select at 1000 rows, so read the table page by page. */

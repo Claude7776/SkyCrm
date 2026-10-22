@@ -6,6 +6,16 @@ export function formatCurrency(amount: number, currency = "EUR"): string {
   }).format(amount)
 }
 
+/** Short form for chart axes: "1,2 k €", "850 €". */
+export function formatCompactCurrency(amount: number, currency = "EUR"): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(amount)
+}
+
 export function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("fr-FR", {
     day: "2-digit",

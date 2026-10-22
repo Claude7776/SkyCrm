@@ -6,6 +6,20 @@ import { Input } from "@/components/ui/input"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { useAuth } from "@/hooks/useAuth"
 
+function loginErrorMessage(err: unknown): string {
+  const code = (err as { code?: string })?.code
+  if (code === "invalid_credentials") {
+    return "Email ou mot de passe incorrect. Le compte doit d'abord être créé dans Supabase (Authentication → Users)."
+  }
+  if (code === "email_not_confirmed") {
+    return "Email non confirmé. Dans Supabase, confirmez l'utilisateur ou recréez-le en cochant « Auto Confirm User »."
+  }
+  if (err instanceof TypeError) {
+    return "Impossible de joindre la base. Vérifiez votre connexion et l'URL Supabase."
+  }
+  return (err as Error)?.message || "Connexion impossible"
+}
+
 export function LoginPage() {
   const { signIn } = useAuth()
   const [email, setEmail] = useState("")
@@ -19,8 +33,8 @@ export function LoginPage() {
     setIsSubmitting(true)
     try {
       await signIn(email.trim(), password)
-    } catch {
-      setError("Email ou mot de passe incorrect")
+    } catch (err) {
+      setError(loginErrorMessage(err))
     } finally {
       setIsSubmitting(false)
     }

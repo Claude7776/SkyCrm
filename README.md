@@ -60,6 +60,8 @@ Copiez [.env.example](.env.example) en `.env.local` et renseignez les variables 
 
 Toutes sont facultatives : sans Supabase, l'application reste en local. Sans Resend, les emails ne sont pas envoyés et vous pouvez les désactiver dans les Paramètres.
 
+Les emails nécessitent aussi Supabase : la fonction d'envoi n'accepte que les utilisateurs connectés, pour que personne d'autre ne puisse utiliser votre compte Resend.
+
 ## Déploiement
 
 SkyCRM est prévu pour [Vercel](https://vercel.com) : importez le dépôt, ajoutez les variables ci-dessus dans **Settings → Environment Variables**, puis déployez. La fonction [api/send-email.ts](api/send-email.ts) est déployée automatiquement pour l'envoi des emails.

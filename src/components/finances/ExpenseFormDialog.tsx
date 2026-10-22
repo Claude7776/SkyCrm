@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { useAppData } from "@/hooks/useAppData"
+import { currencySymbol } from "@/utils/currency"
 import { expenseSchema, type ExpenseFormValues, type ExpenseFormOutput } from "@/utils/schemas"
 import { EXPENSE_RECURRENCE_LABELS } from "@/utils/status"
 import type { Expense } from "@/types"
@@ -44,7 +45,7 @@ const EMPTY_VALUES: ExpenseFormValues = {
 }
 
 export function ExpenseFormDialog({ open, onOpenChange, expense }: ExpenseFormDialogProps) {
-  const { addExpense, updateExpense } = useAppData()
+  const { addExpense, updateExpense, currency } = useAppData()
   const isEditing = Boolean(expense)
   const isGeneratedInstance = Boolean(expense?.recurringSourceId)
 
@@ -112,7 +113,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense }: ExpenseFormDi
             </Field>
             <div className="grid grid-cols-2 gap-4">
               <Field data-invalid={!!errors.amount}>
-                <FieldLabel htmlFor="expense-amount">Montant *</FieldLabel>
+                <FieldLabel htmlFor="expense-amount">Montant ({currencySymbol(currency)}) *</FieldLabel>
                 <Input id="expense-amount" type="number" step="0.01" min="0" {...register("amount")} />
                 <FieldError errors={[errors.amount]} />
               </Field>

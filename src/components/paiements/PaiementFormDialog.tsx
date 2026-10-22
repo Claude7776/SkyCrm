@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { useAppData } from "@/hooks/useAppData"
+import { currencySymbol } from "@/utils/currency"
 import { paiementSchema, type PaiementFormValues, type PaiementFormOutput } from "@/utils/schemas"
 import { remainingAmount } from "@/utils/status"
 import { formatCurrency } from "@/utils/format"
@@ -42,7 +43,7 @@ export function PaiementFormDialog({
   onOpenChange,
   defaultPrestationId,
 }: PaiementFormDialogProps) {
-  const { clients, prestations, paiements, settings, addPaiement } = useAppData()
+  const { clients, prestations, paiements, settings, addPaiement, currency } = useAppData()
 
   const clientById = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients])
 
@@ -105,7 +106,7 @@ export function PaiementFormDialog({
         const { subject, html } = buildPaymentEmail(
           client.name,
           settings.businessName,
-          formatCurrency(values.amount, settings.currency),
+          formatCurrency(values.amount, currency),
           prestation.title
         )
         sendEmail(client.email, subject, html).then((ok) => {
@@ -152,7 +153,7 @@ export function PaiementFormDialog({
                       {unpaidPrestations.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.title} — {clientById.get(p.clientId)?.name} (reste{" "}
-                          {formatCurrency(remainingAmount(p, paiements), settings.currency)})
+                          {formatCurrency(remainingAmount(p, paiements), currency)})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -164,7 +165,7 @@ export function PaiementFormDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <Field data-invalid={!!errors.amount}>
-                <FieldLabel htmlFor="paiement-amount">Montant *</FieldLabel>
+                <FieldLabel htmlFor="paiement-amount">Montant ({currencySymbol(currency)}) *</FieldLabel>
                 <Input
                   id="paiement-amount"
                   type="number"

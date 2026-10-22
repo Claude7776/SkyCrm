@@ -1,4 +1,4 @@
-import { Euro, Users, Loader2, CheckCircle2, AlertCircle, TrendingUp } from "lucide-react"
+import { Users, Loader2, CheckCircle2, AlertCircle, TrendingUp } from "lucide-react"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { KpiCard } from "@/components/shared/KpiCard"
 import { RevenueChart } from "@/components/dashboard/RevenueChart"
@@ -7,10 +7,11 @@ import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
 import { useAppData } from "@/hooks/useAppData"
+import { currencyIcon } from "@/utils/currency"
 import { formatCurrency } from "@/utils/format"
 
 export function DashboardPage() {
-  const { settings } = useAppData()
+  const { currency } = useAppData()
   const stats = useDashboardStats()
 
   return (
@@ -24,13 +25,13 @@ export function DashboardPage() {
         <KpiCard
           index={0}
           label="CA du mois"
-          value={formatCurrency(stats.revenueThisMonth, settings.currency)}
-          icon={Euro}
+          value={formatCurrency(stats.revenueThisMonth, currency)}
+          icon={currencyIcon(currency)}
         />
         <KpiCard
           index={1}
           label="Revenus annuels"
-          value={formatCurrency(stats.revenueThisYear, settings.currency)}
+          value={formatCurrency(stats.revenueThisYear, currency)}
           icon={TrendingUp}
         />
         <KpiCard
@@ -62,16 +63,7 @@ export function DashboardPage() {
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">
-              Revenus sur 12 mois
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RevenueChart data={stats.monthlyRevenue} />
-          </CardContent>
-        </Card>
+        <RevenueChart />
 
         <Card>
           <CardHeader>

@@ -69,7 +69,10 @@ export interface BusinessSettings {
   logo?: string
   phone?: string
   email?: string
+  /** Currency shown in the app; amounts are converted from `baseCurrency`. */
   currency: string
+  /** Currency the amounts are stored in. Set once, on first load. */
+  baseCurrency?: string
   accentColor: string
   themeMode: ThemeMode
   sendClientEmails: boolean

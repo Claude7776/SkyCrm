@@ -23,7 +23,7 @@ import { formatCurrency, formatDate } from "@/utils/format"
 import type { Paiement } from "@/types"
 
 export function PaiementsPage() {
-  const { clients, prestations, paiements, settings, removePaiement } = useAppData()
+  const { clients, prestations, paiements, removePaiement, currency } = useAppData()
   const [searchParams] = useSearchParams()
   const highlightedId = searchParams.get("id")
 
@@ -82,8 +82,8 @@ export function PaiementsPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 mb-4 max-w-md">
-        <KpiCard label="Total reçu" value={formatCurrency(totalReceived, settings.currency)} icon={Wallet} />
-        <KpiCard label="Ce mois-ci" value={formatCurrency(totalThisMonth, settings.currency)} icon={Wallet} accent="good" index={1} />
+        <KpiCard label="Total reçu" value={formatCurrency(totalReceived, currency)} icon={Wallet} />
+        <KpiCard label="Ce mois-ci" value={formatCurrency(totalThisMonth, currency)} icon={Wallet} accent="good" index={1} />
       </div>
 
       {paiements.length === 0 ? (
@@ -139,7 +139,7 @@ export function PaiementsPage() {
                           {prestation ? clientById.get(prestation.clientId)?.name ?? "—" : "—"}
                         </TableCell>
                         <TableCell className="text-right text-sm font-medium tabular-nums text-status-good">
-                          +{formatCurrency(pay.amount, settings.currency)}
+                          +{formatCurrency(pay.amount, currency)}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{pay.method || "—"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{formatDate(pay.date)}</TableCell>

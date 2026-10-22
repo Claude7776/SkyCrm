@@ -16,7 +16,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function TopClientsChart({ data }: { data: TopClientPoint[] }) {
-  const { settings } = useAppData()
+  const { currency } = useAppData()
 
   if (data.length === 0) {
     return (
@@ -50,7 +50,7 @@ export function TopClientsChart({ data }: { data: TopClientPoint[] }) {
           content={
             <ChartTooltipContent
               hideLabel
-              formatter={(value) => [formatCurrency(Number(value), settings.currency), " "]}
+              formatter={(value) => [formatCurrency(Number(value), currency), " "]}
             />
           }
         />

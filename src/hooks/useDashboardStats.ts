@@ -2,12 +2,6 @@ import { useMemo } from "react"
 import { useAppData } from "@/hooks/useAppData"
 import { computePaymentStatus, remainingAmount } from "@/utils/status"
 
-export interface MonthlyRevenuePoint {
-  key: string
-  label: string
-  revenue: number
-}
-
 export function useDashboardStats() {
   const { clients, prestations, paiements } = useAppData()
 
@@ -35,22 +29,6 @@ export function useDashboardStats() {
       (p) => remainingAmount(p, paiements) > 0
     ).length
 
-    const monthlyRevenue: MonthlyRevenuePoint[] = []
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const key = `${d.getFullYear()}-${d.getMonth()}`
-      const label = new Intl.DateTimeFormat("fr-FR", {
-        month: "short",
-      }).format(d)
-      const revenue = paiements
-        .filter((p) => {
-          const pd = new Date(p.date)
-          return `${pd.getFullYear()}-${pd.getMonth()}` === key
-        })
-        .reduce((sum, p) => sum + p.amount, 0)
-      monthlyRevenue.push({ key, label, revenue })
-    }
-
     const statusBreakdown = [
       {
         name: "À faire",
@@ -67,7 +45,6 @@ export function useDashboardStats() {
       inProgressCount,
       doneCount,
       unpaidCount,
-      monthlyRevenue,
       statusBreakdown,
       computePaymentStatus: (prestationId: string) => {
         const prestation = prestations.find((p) => p.id === prestationId)

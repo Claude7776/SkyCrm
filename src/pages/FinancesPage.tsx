@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Euro, TrendingUp, TrendingDown, Wallet, Plus, Trash2, Pencil, Repeat } from "lucide-react"
+import { TrendingUp, TrendingDown, Wallet, Plus, Trash2, Pencil, Repeat } from "lucide-react"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { KpiCard } from "@/components/shared/KpiCard"
 import { EmptyState } from "@/components/shared/EmptyState"
@@ -19,12 +19,13 @@ import {
 } from "@/components/ui/table"
 import { useAppData } from "@/hooks/useAppData"
 import { useFinanceStats } from "@/hooks/useFinanceStats"
+import { currencyIcon } from "@/utils/currency"
 import { formatCurrency, formatDate } from "@/utils/format"
 import { EXPENSE_RECURRENCE_LABELS } from "@/utils/status"
 import type { Expense } from "@/types"
 
 export function FinancesPage() {
-  const { settings, expenses, removeExpense } = useAppData()
+  const { expenses, removeExpense, currency } = useAppData()
   const stats = useFinanceStats()
   const [expenseFormOpen, setExpenseFormOpen] = useState(false)
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>()
@@ -48,16 +49,16 @@ export function FinancesPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard index={0} label="Revenus totaux" value={formatCurrency(stats.totalRevenue, settings.currency)} icon={Euro} />
-        <KpiCard index={1} label="Dépenses totales" value={formatCurrency(stats.totalExpenses, settings.currency)} icon={TrendingDown} accent="warning" />
+        <KpiCard index={0} label="Revenus totaux" value={formatCurrency(stats.totalRevenue, currency)} icon={currencyIcon(currency)} />
+        <KpiCard index={1} label="Dépenses totales" value={formatCurrency(stats.totalExpenses, currency)} icon={TrendingDown} accent="warning" />
         <KpiCard
           index={2}
           label="Bénéfices"
-          value={formatCurrency(stats.totalProfit, settings.currency)}
+          value={formatCurrency(stats.totalProfit, currency)}
           icon={TrendingUp}
           accent={stats.totalProfit >= 0 ? "good" : "critical"}
         />
-        <KpiCard index={3} label="Panier moyen" value={formatCurrency(stats.averagePrestationValue, settings.currency)} icon={Wallet} />
+        <KpiCard index={3} label="Panier moyen" value={formatCurrency(stats.averagePrestationValue, currency)} icon={Wallet} />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -100,15 +101,15 @@ export function FinancesPage() {
                   <TableRow key={row.year}>
                     <TableCell className="font-medium">{row.year}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatCurrency(row.revenue, settings.currency)}
+                      {formatCurrency(row.revenue, currency)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {formatCurrency(row.expenses, settings.currency)}
+                      {formatCurrency(row.expenses, currency)}
                     </TableCell>
                     <TableCell
                       className={`text-right tabular-nums font-medium ${row.profit >= 0 ? "text-status-good" : "text-status-critical"}`}
                     >
-                      {formatCurrency(row.profit, settings.currency)}
+                      {formatCurrency(row.profit, currency)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -153,7 +154,7 @@ export function FinancesPage() {
                       </button>
                       <div className="flex items-center gap-1 shrink-0">
                         <span className="text-sm font-medium tabular-nums text-foreground">
-                          -{formatCurrency(expense.amount, settings.currency)}
+                          -{formatCurrency(expense.amount, currency)}
                         </span>
                         <Button
                           variant="ghost"

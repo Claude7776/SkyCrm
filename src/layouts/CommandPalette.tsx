@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Users, Briefcase, LayoutDashboard, Wallet, BarChart3, Settings } from "lucide-react"
 import {
+  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -40,69 +41,73 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       title="Recherche"
       description="Rechercher un client ou une prestation"
     >
-      <CommandInput
-        placeholder="Rechercher un client, une prestation…"
-        value={query}
-        onValueChange={setQuery}
-      />
-      <CommandList>
-        {query.trim() === "" ? (
-          <CommandGroup heading="Navigation">
-            <CommandItem onSelect={() => go("/")}>
-              <LayoutDashboard /> Tableau de bord
-            </CommandItem>
-            <CommandItem onSelect={() => go("/clients")}>
-              <Users /> Clients
-            </CommandItem>
-            <CommandItem onSelect={() => go("/prestations")}>
-              <Briefcase /> Prestations
-            </CommandItem>
-            <CommandItem onSelect={() => go("/paiements")}>
-              <Wallet /> Paiements
-            </CommandItem>
-            <CommandItem onSelect={() => go("/finances")}>
-              <BarChart3 /> Finances
-            </CommandItem>
-            <CommandItem onSelect={() => go("/settings")}>
-              <Settings /> Paramètres
-            </CommandItem>
-          </CommandGroup>
-        ) : (
-          <>
-            <CommandEmpty>Aucun résultat.</CommandEmpty>
-            {clientResults.length > 0 && (
-              <CommandGroup heading="Clients">
-                {clientResults.map((r) => (
-                  <CommandItem key={r.id} onSelect={() => go(r.href)}>
-                    <Users />
-                    <div className="flex flex-col">
-                      <span>{r.title}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {r.subtitle}
-                      </span>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-            {prestationResults.length > 0 && (
-              <CommandGroup heading="Prestations">
-                {prestationResults.map((r) => (
-                  <CommandItem key={r.id} onSelect={() => go(r.href)}>
-                    <Briefcase />
-                    <div className="flex flex-col">
-                      <span>{r.title}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {r.subtitle}
-                      </span>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-          </>
-        )}
-      </CommandList>
+      {/* Results are already filtered by useGlobalSearch: cmdk's own fuzzy
+          filter would hide matches on fields not shown (email, phone…). */}
+      <Command shouldFilter={false}>
+        <CommandInput
+          placeholder="Rechercher un client, une prestation…"
+          value={query}
+          onValueChange={setQuery}
+        />
+        <CommandList>
+          {query.trim() === "" ? (
+            <CommandGroup heading="Navigation">
+              <CommandItem onSelect={() => go("/")}>
+                <LayoutDashboard /> Tableau de bord
+              </CommandItem>
+              <CommandItem onSelect={() => go("/clients")}>
+                <Users /> Clients
+              </CommandItem>
+              <CommandItem onSelect={() => go("/prestations")}>
+                <Briefcase /> Prestations
+              </CommandItem>
+              <CommandItem onSelect={() => go("/paiements")}>
+                <Wallet /> Paiements
+              </CommandItem>
+              <CommandItem onSelect={() => go("/finances")}>
+                <BarChart3 /> Finances
+              </CommandItem>
+              <CommandItem onSelect={() => go("/settings")}>
+                <Settings /> Paramètres
+              </CommandItem>
+            </CommandGroup>
+          ) : (
+            <>
+              <CommandEmpty>Aucun résultat.</CommandEmpty>
+              {clientResults.length > 0 && (
+                <CommandGroup heading="Clients">
+                  {clientResults.map((r) => (
+                    <CommandItem key={r.id} value={r.id} onSelect={() => go(r.href)}>
+                      <Users />
+                      <div className="flex flex-col">
+                        <span>{r.title}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {r.subtitle}
+                        </span>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+              {prestationResults.length > 0 && (
+                <CommandGroup heading="Prestations">
+                  {prestationResults.map((r) => (
+                    <CommandItem key={r.id} value={r.id} onSelect={() => go(r.href)}>
+                      <Briefcase />
+                      <div className="flex flex-col">
+                        <span>{r.title}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {r.subtitle}
+                        </span>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </>
+          )}
+        </CommandList>
+      </Command>
     </CommandDialog>
   )
 }

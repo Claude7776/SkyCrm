@@ -8,6 +8,8 @@ import { StorageStatus } from "@/components/shared/StorageStatus"
 import { Button } from "@/components/ui/button"
 import { NAV_ITEMS } from "./nav-items"
 
+const isMac = /Mac|iPhone|iPad/.test(navigator.userAgent)
+
 export function Header() {
   const location = useLocation()
   const [searchOpen, setSearchOpen] = useState(false)
@@ -45,7 +47,7 @@ export function Header() {
           <Search className="size-4" />
           Rechercher…
           <kbd className="ml-auto rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-            ⌘K
+            {isMac ? "⌘K" : "Ctrl K"}
           </kbd>
         </Button>
         <Button

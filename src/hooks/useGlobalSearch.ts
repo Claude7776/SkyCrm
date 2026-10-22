@@ -9,6 +9,16 @@ export interface SearchResult {
   href: string
 }
 
+/** Lowercase without accents, so "amelie" finds "Amélie". */
+const normalize = (text: string) =>
+  text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+
+/** Also ignores spaces, so "0612" finds "06 12 34 56 78". */
+const matches = (field: string, q: string) => {
+  const value = normalize(field)
+  return value.includes(q) || value.replace(/\s/g, "").includes(q.replace(/\s/g, ""))
+}
+
 export function useGlobalSearch(query: string): SearchResult[] {
   const { clients, prestations } = useAppData()
   const clientById = useMemo(
@@ -17,14 +27,14 @@ export function useGlobalSearch(query: string): SearchResult[] {
   )
 
   return useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = normalize(query.trim())
     if (!q) return []
 
     const clientResults: SearchResult[] = clients
       .filter((c) =>
         [c.name, c.email, c.company, c.phone]
           .filter(Boolean)
-          .some((field) => field!.toLowerCase().includes(q))
+          .some((field) => matches(field!, q))
       )
       .map((c) => ({
         id: c.id,
@@ -38,7 +48,7 @@ export function useGlobalSearch(query: string): SearchResult[] {
       .filter((p) =>
         [p.title, p.description, clientById.get(p.clientId)?.name]
           .filter(Boolean)
-          .some((field) => field!.toLowerCase().includes(q))
+          .some((field) => matches(field!, q))
       )
       .map((p) => ({
         id: p.id,

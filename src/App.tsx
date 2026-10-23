@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/shared/theme-provider"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppDataProvider } from "@/context/AppDataContext"
 import { AuthProvider } from "@/context/AuthContext"
 import { useAuth } from "@/hooks/useAuth"
@@ -18,9 +19,12 @@ import { SettingsPage } from "@/pages/SettingsPage"
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <AuthGate />
-      </AuthProvider>
+      {/* Radix tooltips (e.g. the collapsed sidebar's labels) crash without it. */}
+      <TooltipProvider>
+        <AuthProvider>
+          <AuthGate />
+        </AuthProvider>
+      </TooltipProvider>
     </ThemeProvider>
   )
 }

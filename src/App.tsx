@@ -14,6 +14,7 @@ import { DashboardPage } from "@/pages/DashboardPage"
 import { ClientsPage } from "@/pages/ClientsPage"
 import { PrestationsPage } from "@/pages/PrestationsPage"
 import { PaiementsPage } from "@/pages/PaiementsPage"
+import { PaypalPage } from "@/pages/PaypalPage"
 import { FinancesPage } from "@/pages/FinancesPage"
 import { SettingsPage } from "@/pages/SettingsPage"
 
@@ -49,6 +50,7 @@ function AuthGate() {
             <Route path="clients" element={<ClientsPage />} />
             <Route path="prestations" element={<PrestationsPage />} />
             <Route path="paiements" element={<PaiementsPage />} />
+            <Route path="paypal" element={<PaypalPage />} />
             <Route path="finances" element={<FinancesPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

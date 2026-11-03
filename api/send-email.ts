@@ -1,29 +1,14 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
+import { isSignedIn } from "./_lib/auth.js"
 
 const EMAIL_PATTERN = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/
 const MAX_HTML_LENGTH = 100_000
 
 /**
- * Only signed-in SkyCRM users may send: the caller's Supabase access token
- * is checked against Supabase Auth. Without this, anyone knowing the URL
- * could use the Resend account to send spam.
- */
-async function isSignedIn(req: VercelRequest): Promise<boolean> {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL
-  const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, "")
-  if (!supabaseUrl || !supabaseKey || !token) return false
-
-  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
-    headers: { apikey: supabaseKey, Authorization: `Bearer ${token}` },
-  })
-  return response.ok
-}
-
-/**
  * Relays transactional emails (client welcome / payment confirmation) to
  * Resend. The API key must stay server-side — this function is the only
- * place it's read from, never bundled into the browser build.
+ * place it's read from, never bundled into the browser build. Only
+ * signed-in users may send, so nobody else can use the Resend account.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {

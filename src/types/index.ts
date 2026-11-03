@@ -62,6 +62,37 @@ export interface Expense {
 
 export type ExpenseInput = Omit<Expense, "id" | "createdAt">
 
+/** A transaction from the PayPal Business history (id is PayPal's transaction id). */
+export interface PaypalTransaction {
+  id: ID
+  date: string
+  /** PayPal event code, e.g. T0006 (payment received), T0400 (withdrawal to bank). */
+  eventCode: string
+  /** S completed, P pending, D denied, V reversed. */
+  status: string
+  /** Gross amount, negative for money going out. */
+  amount: number
+  /** PayPal fee, negative when charged. */
+  fee: number
+  currency: string
+  payerEmail?: string
+  payerName?: string
+  description?: string
+  invoiceId?: string
+  /** SkyCRM payment this transaction was recorded as. */
+  paiementId?: ID
+  /** Expense the fee was recorded in. */
+  expenseId?: ID
+  ignored?: boolean
+  createdAt: string
+}
+
+/** What PayPal provides; the rest is SkyCRM's own bookkeeping. */
+export type PaypalTransactionData = Omit<
+  PaypalTransaction,
+  "paiementId" | "expenseId" | "ignored" | "createdAt"
+>
+
 export type ThemeMode = "light" | "dark" | "system"
 
 export interface BusinessSettings {

@@ -3,6 +3,7 @@ import {
   Users,
   Briefcase,
   Wallet,
+  CreditCard,
   BarChart3,
   Settings,
   type LucideIcon,
@@ -19,6 +20,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Clients", to: "/clients", icon: Users },
   { label: "Prestations", to: "/prestations", icon: Briefcase },
   { label: "Paiements", to: "/paiements", icon: Wallet },
+  { label: "PayPal", to: "/paypal", icon: CreditCard },
   { label: "Finances", to: "/finances", icon: BarChart3 },
   { label: "Paramètres", to: "/settings", icon: Settings },
 ]

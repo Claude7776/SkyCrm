@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Users, Briefcase, LayoutDashboard, Wallet, BarChart3, Settings } from "lucide-react"
+import { Users, Briefcase, LayoutDashboard, Wallet, CreditCard, BarChart3, Settings } from "lucide-react"
 import {
   Command,
   CommandDialog,
@@ -63,6 +63,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               </CommandItem>
               <CommandItem onSelect={() => go("/paiements")}>
                 <Wallet /> Paiements
+              </CommandItem>
+              <CommandItem onSelect={() => go("/paypal")}>
+                <CreditCard /> PayPal
               </CommandItem>
               <CommandItem onSelect={() => go("/finances")}>
                 <BarChart3 /> Finances

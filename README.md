@@ -21,6 +21,7 @@
 | **Clients** | Fiche complète (contact, entreprise, adresse, notes), email de bienvenue automatique |
 | **Prestations** | Prix, dates, échéance, statut (à faire, en cours, terminée) et statut de paiement calculé automatiquement |
 | **Paiements** | Paiements partiels ou complets rattachés à une prestation, email de confirmation envoyé au client |
+| **PayPal** | Synchronisation de l'historique PayPal Business (jusqu'à 3 ans), client reconnu par son email, enregistrement d'un paiement PayPal sur une prestation en un clic, frais PayPal regroupés en dépenses mensuelles |
 | **Finances** | Revenus, dépenses et bénéfices par mois et par année, meilleurs clients, dépenses récurrentes (quotidiennes, hebdomadaires, mensuelles) |
 | **Recherche** | Recherche instantanée (`Ctrl K`) par nom, email, téléphone ou prestation, sans se soucier des accents |
 | **Devises** | Euro, dollar US, livre sterling, franc suisse, dollar canadien, avec conversion automatique au taux du jour de la BCE |
@@ -57,10 +58,25 @@ Copiez [.env.example](.env.example) en `.env.local` et renseignez les variables 
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Clé publique (publishable) de votre projet Supabase |
 | `RESEND_API_KEY` | Clé [Resend](https://resend.com) pour les emails aux clients (côté serveur uniquement) |
 | `RESEND_FROM_EMAIL` | Adresse d'expédition vérifiée dans Resend (facultatif) |
+| `PAYPAL_CLIENT_ID` | Client ID de votre app PayPal (côté serveur uniquement) |
+| `PAYPAL_CLIENT_SECRET` | Secret de votre app PayPal (côté serveur uniquement) |
+| `PAYPAL_ENV` | `live` (par défaut) ou `sandbox` pour tester avec un compte PayPal de test |
 
 Toutes sont facultatives : sans Supabase, l'application reste en local. Sans Resend, les emails ne sont pas envoyés et vous pouvez les désactiver dans les Paramètres.
 
 Les emails nécessitent aussi Supabase : la fonction d'envoi n'accepte que les utilisateurs connectés, pour que personne d'autre ne puisse utiliser votre compte Resend.
+
+## Connecter PayPal Business
+
+La page **PayPal** récupère l'historique de votre compte PayPal Business. Elle nécessite Supabase.
+
+1. Sur [developer.paypal.com](https://developer.paypal.com), connectez-vous avec votre compte PayPal Business, puis **Apps & Credentials → Live → Create App** (type *Merchant*).
+2. Dans les réglages de l'app, cochez **Transaction Search** et enregistrez. L'activation peut prendre quelques heures.
+3. Copiez le **Client ID** et le **Secret** dans les variables `PAYPAL_CLIENT_ID` et `PAYPAL_CLIENT_SECRET` sur Vercel, puis redéployez.
+4. Relancez [supabase/schema.sql](supabase/schema.sql) dans le SQL Editor de Supabase pour créer la table de l'historique PayPal (le script ne touche pas aux données existantes).
+5. Dans SkyCRM, ouvrez **PayPal** et cliquez sur **Synchroniser**.
+
+Le Client ID et le Secret restent sur le serveur : le navigateur ne les voit jamais. PayPal fournit les transactions avec jusqu'à 3 heures de délai.
 
 ## Déploiement
 

@@ -81,8 +81,11 @@ export async function clearAll(): Promise<void> {
     return
   }
   await writeSnapshot({ clients: [], prestations: [], paiements: [], expenses: [] })
-  const { error } = await requireSupabase().from("settings").delete().eq("user_id", await currentUserId())
-  if (error) throw error
+  const userId = await currentUserId()
+  for (const table of ["settings", "paypal_transactions"]) {
+    const { error } = await requireSupabase().from(table).delete().eq("user_id", userId)
+    if (error) throw error
+  }
 }
 
 /** Data an older version of the app left in this browser's localStorage. */

@@ -27,3 +27,9 @@ Sans configuration, l'application continue de fonctionner en local.
 y sont envoyées automatiquement (elles restent aussi dans le navigateur, par sécurité).
 Pour transférer les données d'un autre appareil : **Paramètres → Exporter en JSON** sur
 l'ancien appareil, puis **Importer un fichier JSON** une fois connecté.
+
+## Après une mise à jour de SkyCRM
+
+Si une nouvelle version ajoute des tables (par exemple l'historique PayPal), relancez
+[`schema.sql`](schema.sql) dans le SQL Editor. Le script ne crée que ce qui manque et ne
+modifie pas vos données.

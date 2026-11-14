@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase"
+import { callApi } from "./api"
 
 /**
  * Emails go through /api/send-email, which only accepts signed-in users,
@@ -6,16 +6,8 @@ import { supabase } from "@/lib/supabase"
  */
 export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   try {
-    const { data } = (await supabase?.auth.getSession()) ?? { data: { session: null } }
-    const token = data.session?.access_token
-    if (!token) return false
-
-    const res = await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ to, subject, html }),
-    })
-    return res.ok
+    await callApi("/api/send-email", { to, subject, html })
+    return true
   } catch {
     return false
   }

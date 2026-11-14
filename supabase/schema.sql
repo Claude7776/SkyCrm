@@ -1,5 +1,6 @@
 -- SkyCRM database schema for Supabase.
--- Run once in the Supabase dashboard: SQL Editor → New query → paste → Run.
+-- Run in the Supabase dashboard: SQL Editor → New query → paste → Run.
+-- Safe to run again after an update: it only adds what is missing.
 --
 -- Every row belongs to the signed-in user (user_id defaults to auth.uid())
 -- and Row Level Security makes sure a user only ever sees their own rows.
@@ -59,16 +60,38 @@ create table if not exists public.settings (
   data jsonb not null
 );
 
+-- PayPal Business history, filled by the "Synchroniser" button (api/paypal-transactions.ts).
+-- paiement_id / expense_id link a transaction to what it was recorded as in SkyCRM.
+create table if not exists public.paypal_transactions (
+  id text primary key,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  date timestamptz not null,
+  event_code text not null,
+  status text not null,
+  amount numeric not null,
+  fee numeric not null default 0,
+  currency text not null,
+  payer_email text,
+  payer_name text,
+  description text,
+  invoice_id text,
+  paiement_id text,
+  expense_id text,
+  ignored boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists clients_user_id_idx on public.clients (user_id);
 create index if not exists prestations_user_id_idx on public.prestations (user_id);
 create index if not exists paiements_user_id_idx on public.paiements (user_id);
 create index if not exists expenses_user_id_idx on public.expenses (user_id);
+create index if not exists paypal_transactions_user_id_idx on public.paypal_transactions (user_id);
 
 do $$
 declare
   t text;
 begin
-  foreach t in array array['clients', 'prestations', 'paiements', 'expenses', 'settings'] loop
+  foreach t in array array['clients', 'prestations', 'paiements', 'expenses', 'settings', 'paypal_transactions'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists "Own rows only" on public.%I', t);
     execute format(

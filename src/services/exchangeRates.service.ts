@@ -22,6 +22,13 @@ function readCache(key: string): CachedRate | null {
   }
 }
 
+/** Converts an amount at today's rate, rounded to cents. */
+export async function convertAmount(amount: number, from: string, to: string): Promise<number> {
+  if (from === to) return amount
+  const { rate } = await getExchangeRate(from, to)
+  return Math.round(amount * rate * 100) / 100
+}
+
 /**
  * Daily rate from Frankfurter (free, no API key). Cached for 12 hours, and
  * the last known rate is reused when the network is unavailable.
